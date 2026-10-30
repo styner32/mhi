@@ -1,0 +1,102 @@
+//
+// serve — foreground proxy/monitor command. M0 scope (T-002..T-008):
+//
+//   - explicit paths only (--config/--env-file, never CWD scanning)
+//   - listen on a specific LAN IPv4, restricted client allowlist
+//   - no-CA pure CONNECT monitoring: destinations reported as metadata only,
+//     tunnel bytes passed through untouched
+//   - Ctrl+C/SIGTERM: stop accepting, drain up to 3s, close owned connections,
+//     exit 0 (or 130 on SIGINT per §4.8)
+//
+// Per M0 gate, MITM/black-box decryption is intentionally absent: no CA is
+// loaded when ssl_proxy is disabled, and no underground TLS termination
+// happens on tunnel-mode connections.
+package cli
+
+import (
+	"fmt"
+	"io"
+	"context"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/spf13/cobra"
+
+	"github.com/sunjinlee/mhi/internal/proxy"
+)
+
+func newServeCmd(stdout, stderr io.Writer, registerGlobalFlags globalFlagRegistrar) *cobra.Command {
+	var flags serveFlags
+
+	cmd := &cobra.Command{
+		Use:   "serve",
+		Short: "Run the foreground proxy/monitor",
+		// Options in §4.5 are accepted as flags but treated as *explicit CLI*
+		// values only; cobra flag defaults never become a config source of
+		// truth (§4.4 priority: explicit flag > env > .env > YAML > defaults).
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runServe(stdout, stderr, flags)
+		},
+	}
+
+	registerGlobalFlags(cmd)
+	addServeFlags(cmd, &flags)
+	return cmd
+}
+
+// serveFlags mirrors §4.5 option table. Booleans with cobra defaults are only
+// meaningful when the user actually supplied them (cmd.Flags().Changed).
+type serveFlags struct {
+	listen        string
+	client        string
+	sslProxy      bool
+	mitmHosts     []string
+	httpHosts     []string
+	body          string
+	details       bool
+	format        string
+	output        string
+	maxOutputKB   int64
+	redactRules   string
+	proxyPassFile string
+	watch         bool
+}
+
+func addServeFlags(cmd *cobra.Command, f *serveFlags) {
+	cmd.Flags().StringVar(&f.listen, "listen", "", "listen address (default 127.0.0.1:9090; use a specific LAN IPv4 for iPhone)")
+	cmd.Flags().StringVar(&f.client, "client", "", "approved client IP (required with LAN bind)")
+	cmd.Flags().BoolVar(&f.sslProxy, "ssl-proxy", false, "enable SSL proxying (ssl_proxy.enabled)")
+	cmd.Flags().StringArrayVar(&f.mitmHosts, "mitm-host", nil, "exact host[:port] to MITM; repeatable; replaces domains list")
+	cmd.Flags().StringArrayVar(&f.httpHosts, "http-host", nil, "exact host[:port] for plaintext HTTP observation")
+	cmd.Flags().StringVar(&f.body, "body", "", "body capture mode: none|json (default none)")
+	cmd.Flags().BoolVar(&f.details, "details", false, "emit sanitized detail output")
+	cmd.Flags().StringVar(&f.format, "format", "", "output format: text|jsonl")
+	cmd.Flags().StringVar(&f.output, "output", "", "explicit JSONL output file")
+	cmd.Flags().Int64Var(&f.maxOutputKB, "max-output-bytes", 0, "output file size cap (default 100 MiB)")
+	cmd.Flags().StringVar(&f.redactRules, "redact-rules", "", "redact_rules JSON path")
+	cmd.Flags().StringVar(&f.proxyPassFile, "proxy-password-file", "", "0600 password file (never argv)")
+	cmd.Flags().BoolVar(&f.watch, "watch", false, "watch explicit config/env files for policy reload (serve-only, requires --config and/or --env-file)")
+}
+
+func runServe(stdout, stderr io.Writer, f serveFlags) error {
+	// M0 v1 behavior: build a Config from CLI flags alone. M2 adds .env/YAML
+	// reading and precedence. The proxy core (internal/proxy) is shared.
+	cfg := proxy.ServeConfigFromFlags(f.listen, f.client, f.sslProxy, f.mitmHosts, f.httpHosts)
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	srv, err := proxy.Serve(ctx, cfg)
+	if err != nil {
+		fmt.Fprintln(stderr, "serve:", err)
+		setExitCode(ExitStartFailed)
+		return nil
+	}
+
+	// Block until signal; then srv handles drain/close internally.
+	<-ctx.Done()
+	srv.Close()
+	fmt.Fprintln(stderr, "serve: shutdown complete")
+	return nil
+}
