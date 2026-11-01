@@ -14,15 +14,16 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
-	"context"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/spf13/cobra"
 
+	"github.com/sunjinlee/mhi/internal/config"
 	"github.com/sunjinlee/mhi/internal/proxy"
 )
 
@@ -48,6 +49,7 @@ func newServeCmd(stdout, stderr io.Writer, registerGlobalFlags globalFlagRegistr
 // serveFlags mirrors §4.5 option table. Booleans with cobra defaults are only
 // meaningful when the user actually supplied them (cmd.Flags().Changed).
 type serveFlags struct {
+	configPath    string
 	listen        string
 	client        string
 	sslProxy      bool
@@ -64,6 +66,7 @@ type serveFlags struct {
 }
 
 func addServeFlags(cmd *cobra.Command, f *serveFlags) {
+	cmd.Flags().StringVar(&f.configPath, "config", "", "explicit YAML config path (no auto-discovery)")
 	cmd.Flags().StringVar(&f.listen, "listen", "", "listen address (default 127.0.0.1:9090; use a specific LAN IPv4 for iPhone)")
 	cmd.Flags().StringVar(&f.client, "client", "", "approved client IP (required with LAN bind)")
 	cmd.Flags().BoolVar(&f.sslProxy, "ssl-proxy", false, "enable SSL proxying (ssl_proxy.enabled)")
@@ -80,9 +83,35 @@ func addServeFlags(cmd *cobra.Command, f *serveFlags) {
 }
 
 func runServe(stdout, stderr io.Writer, f serveFlags) error {
-	// M0 v1 behavior: build a Config from CLI flags alone. M2 adds .env/YAML
-	// reading and precedence. The proxy core (internal/proxy) is shared.
-	cfg := proxy.ServeConfigFromFlags(f.listen, f.client, f.sslProxy, f.mitmHosts, f.httpHosts)
+	// M0 v1 behavior: CLI flags fall back through an explicitly-given YAML
+	// file only (no auto-discovery, §4.1). M2 adds env/.env/precedence.
+	cfg := config.Defaults()
+	if f.configPath != "" {
+		loaded, err := config.LoadYAML(f.configPath)
+		if err != nil {
+			fmt.Fprintln(stderr, "serve:", err)
+			setExitCode(ExitInvalidConfig)
+			return nil
+		}
+		cfg = loaded
+	}
+	// CLI flag overlay (explicit values only; M2 uses Flags().Changed to
+	// distinguish user-supplied from cobra defaults, §4.4).
+	if f.listen != "" {
+		cfg.Listen = f.listen
+	}
+	if f.client != "" {
+		cfg.Client = f.client
+	}
+	if f.sslProxy {
+		cfg.SSLProxy.Enabled = true
+	}
+	if len(f.mitmHosts) > 0 {
+		cfg.SSLProxy.Domains = f.mitmHosts
+	}
+	if len(f.httpHosts) > 0 {
+		cfg.HTTPCapture.Domains = f.httpHosts
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
