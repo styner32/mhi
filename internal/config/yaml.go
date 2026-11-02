@@ -1,4 +1,3 @@
-//
 // Package config implements the typed configuration loader of spec v0.3 §4
 // (checklist T-003, AC-27) and the precedence/validation layers of §4.4
 // that M0 needs for its minimal subset.
@@ -73,7 +72,7 @@ type Output struct {
 	MaxBytes int64  `yaml:"max_bytes"`
 }
 
-// Config is the typed shape of mhi.yaml (§4.2 example).
+// Config is the typed shape of mhi.yml (§4.2 example).
 type Config struct {
 	SchemaVersion int         `yaml:"schema_version"`
 	Listen        string      `yaml:"listen"`
@@ -89,7 +88,6 @@ type Config struct {
 func Defaults() Config {
 	return Config{
 		SchemaVersion: 1,
-		Listen:        "127.0.0.1:9090",
 		SSLProxy:      SSLProxy{},
 		HTTPCapture:   HTTPCapture{},
 		Capture:       Capture{Body: "none"},

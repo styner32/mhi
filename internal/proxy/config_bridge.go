@@ -1,6 +1,6 @@
 package proxy
 
-import "github.com/sunjinlee/mhi/internal/config"
+import "github.com/styner32/mhi/internal/config"
 
 // clientsFromConfig extracts approved client IPs. In M0 config.Client holds a
 // single approved peer; M2's loader (T-201) generalizes this to the full

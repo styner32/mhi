@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/sunjinlee/mhi/internal/cli"
+	"github.com/styner32/mhi/internal/cli"
 )
 
 func main() {

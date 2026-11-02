@@ -1,4 +1,3 @@
-//
 // ca sub-commands (spec §4.1, §5) — lobal-only CA lifecycle:
 //
 //	mhi ca init     — create independent ECDSA P-256 CA key/cert + public DER
@@ -23,7 +22,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newCACmd(stdout, stderr io.Writer, registerGlobalFlags globalFlagRegistrar) *cobra.Command {
+func newCACmd(stdout, stderr io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ca",
 		Short: "Local CA lifecycle (init/path/status/delete)",

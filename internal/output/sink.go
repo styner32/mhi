@@ -1,4 +1,3 @@
-//
 // Package output implements the sanitized-event sink boundary (spec §4.8, §8):
 // stdout carries ONLY sanitized event lines; stderr carries status, reload
 // notices, warnings, and the shutdown summary. Network forwarding never waits
@@ -14,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sunjinlee/mhi/internal/model"
+	"github.com/styner32/mhi/internal/model"
 )
 
 // Sink emits SafeEvents in output order, assigning monotonically increasing

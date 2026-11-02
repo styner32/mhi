@@ -1,4 +1,3 @@
-//
 // doctor — read-only local file/network-candidate inspection (spec §4.1).
 // M0 wires the surface; per AC-01 nothing here creates a CA, opens a
 // listener, or changes the Mac keychain/system proxy.
@@ -11,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newDoctorCmd(stdout, stderr io.Writer, registerGlobalFlags globalFlagRegistrar) *cobra.Command {
+func newDoctorCmd(stdout, stderr io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "doctor",
 		Short: "Read-only check of local files and network candidates",
@@ -20,6 +19,5 @@ func newDoctorCmd(stdout, stderr io.Writer, registerGlobalFlags globalFlagRegist
 			return fmt.Errorf("doctor: read-only checks land in M3 (T-311 doctor behavior); not yet implemented")
 		},
 	}
-	registerGlobalFlags(cmd)
 	return cmd
 }

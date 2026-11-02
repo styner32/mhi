@@ -1,4 +1,3 @@
-//
 // Package model defines the sanitized event types of spec v0.3 §8. M0 scope
 // is the connection-level subset: SafeConnection metadata for CONNECT
 // monitoring (T-006) and the SafeEvent envelope with run/seq bookkeeping.
@@ -13,20 +12,20 @@ import "time"
 
 // Event type names per §8 event list.
 const (
-	EventCaptureStarted      = "capture.started"
-	EventConnectionOpened    = "connection.opened"
-	EventConnectionModeSel   = "connection.mode_selected"
-	EventConnectionTunnel    = "connection.tunnel_ready"
-	EventConnectionClosed    = "connection.closed"
-	EventConnectionError     = "connection.error"
-	EventFlowReqHeaders      = "flow.request_headers"
-	EventFlowRespHeaders     = "flow.response_headers"
-	EventFlowFinished        = "flow.finished"
-	EventConfigApplied       = "config.applied"
-	EventConfigRejected      = "config.rejected"
-	EventConfigShadowed      = "config.shadowed"
-	EventCaptureLoss         = "capture.loss"
-	EventCaptureFinished     = "capture.finished"
+	EventCaptureStarted    = "capture.started"
+	EventConnectionOpened  = "connection.opened"
+	EventConnectionModeSel = "connection.mode_selected"
+	EventConnectionTunnel  = "connection.tunnel_ready"
+	EventConnectionClosed  = "connection.closed"
+	EventConnectionError   = "connection.error"
+	EventFlowReqHeaders    = "flow.request_headers"
+	EventFlowRespHeaders   = "flow.response_headers"
+	EventFlowFinished      = "flow.finished"
+	EventConfigApplied     = "config.applied"
+	EventConfigRejected    = "config.rejected"
+	EventConfigShadowed    = "config.shadowed"
+	EventCaptureLoss       = "capture.loss"
+	EventCaptureFinished   = "capture.finished"
 )
 
 // SchemaVersion for the JSONL event stream (§8: schema_version 2 — independent
@@ -37,16 +36,16 @@ const SchemaVersion = 2
 // Type, At, PolicyRevision, Connection; Flow/Config/Diagnostic are filled in
 // later milestones.
 type SafeEvent struct {
-	SchemaVersion  int             `json:"schema_version"`
-	RunID          string          `json:"run_id"`
-	Seq            uint64          `json:"seq"`
-	Type           string          `json:"type"`
-	At             time.Time       `json:"at"`
-	PolicyRevision uint64          `json:"policy_revision,omitempty"`
-	Connection     *SafeConnection `json:"connection,omitempty"`
+	SchemaVersion  int              `json:"schema_version"`
+	RunID          string           `json:"run_id"`
+	Seq            uint64           `json:"seq"`
+	Type           string           `json:"type"`
+	At             time.Time        `json:"at"`
+	PolicyRevision uint64           `json:"policy_revision,omitempty"`
+	Connection     *SafeConnection  `json:"connection,omitempty"`
 	Config         *SafeConfigEvent `json:"config,omitempty"`
-	Flow           *SafeFlow       `json:"flow,omitempty"`
-	Diagnostic     *SafeDiagnostic `json:"diagnostic,omitempty"`
+	Flow           *SafeFlow        `json:"flow,omitempty"`
+	Diagnostic     *SafeDiagnostic  `json:"diagnostic,omitempty"`
 }
 
 // Connection mode names (§8, §6 decision table).
@@ -58,16 +57,16 @@ const (
 // SafeConnection carries CONNECT monitoring metadata (§8). M0 emits
 // mode_selected(tunnel) + tunnel_ready + closed with these fields only.
 type SafeConnection struct {
-	ID                  string     `json:"id"`
-	Client              string     `json:"client"`
-	Host                string     `json:"host"`
-	Port                int        `json:"port"`
-	Mode                string     `json:"mode"`
-	PolicyRevision      uint64     `json:"policy_revision"`
-	Phase               string     `json:"phase,omitempty"` // handshake|established|closing
-	StartedAt           time.Time  `json:"started_at"`
-	ClosedAt            *time.Time `json:"closed_at,omitempty"`
-	ProxyConnectStatus  int        `json:"proxy_connect_status,omitempty"` // proxy-generated 200/407/502; NOT the upstream API's status
+	ID                 string     `json:"id"`
+	Client             string     `json:"client"`
+	Host               string     `json:"host"`
+	Port               int        `json:"port"`
+	Mode               string     `json:"mode"`
+	PolicyRevision     uint64     `json:"policy_revision"`
+	Phase              string     `json:"phase,omitempty"` // handshake|established|closing
+	StartedAt          time.Time  `json:"started_at"`
+	ClosedAt           *time.Time `json:"closed_at,omitempty"`
+	ProxyConnectStatus int        `json:"proxy_connect_status,omitempty"` // proxy-generated 200/407/502; NOT the upstream API's status
 }
 
 // SafeConfigEvent is the config.applied/config.rejected body (§8): revision,

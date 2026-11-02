@@ -32,7 +32,7 @@ GoProxy는 CONNECT 처리 시 터널 또는 MITM을 선택할 수 있다. 설정
 
 1. `mhi ca init`으로 CA를 생성하고 `mhi ca path`가 출력한 공개 `.cer` 파일을 사용자가 AirDrop한다.
 2. 사용자가 iPhone에 인증서를 설치·신뢰하고 Wi-Fi 프록시를 설정한다. 이 앱은 설치를 수행하지 않는다.
-3. `ssl_proxy.enabled: false`, `domains: []`로 `mhi serve --config ./mhi.yaml --watch`를 실행한다.
+3. `ssl_proxy.enabled: false`, `domains: []`로 `mhi serve --config ./mhi.yml --watch`를 실행한다.
 4. 목적지 호스트·포트와 연결 발생 시각을 보고 필요한 API를 찾는다. 이 단계에서 HTTPS 내부 URL·헤더·본문은 보이지 않는다.
 5. 파일에서 `ssl_proxy.enabled: true`와 특정 `domains`를 저장한다. 유효한 정책만 원자적으로 반영한다.
 6. 해당 앱에서 새 연결을 만들면 그 호스트만 MITM된다. 기존 터널은 자동 전환되지 않으며 별도로 재연결이 필요할 수 있다.
@@ -130,9 +130,9 @@ iPhone 앱 / Safari
 
 ### 4.2 구성 예시: 기본 모니터링
 
-`mhi.yaml`:
+`mhi.yml`:
 
-```yaml
+```yml
 schema_version: 1
 listen: "192.168.0.10:9090"
 client: "192.168.0.25"
@@ -281,18 +281,18 @@ mhi ca path
 
 # 출력된 .cer를 사용자가 Finder/AirDrop으로 전달한다.
 # 최초에는 SSL disabled. 이후 파일의 SSL 항목만 수정한다.
-mhi serve --config ./mhi.yaml --watch
+mhi serve --config ./mhi.yml --watch
 
 # .env만 관리할 수도 있다.
 mhi serve --env-file ./.env --watch
 
 # 나중에 선택할 호스트의 JSON도 볼 예정이면 시작할 때 명시한다.
 # monitoring 상태에서는 이 옵션도 HTTPS 내용을 읽지 못한다.
-mhi serve --config ./mhi.yaml --watch --body json --details
+mhi serve --config ./mhi.yml --watch --body json --details
 
 # 파일을 읽어 유효 설정을 확인한다. 실행 중 프로세스를 제어하지 않는다.
-mhi config check --config ./mhi.yaml
-mhi config show --config ./mhi.yaml
+mhi config check --config ./mhi.yml
+mhi config show --config ./mhi.yml
 ```
 
 ### 4.8 출력 계약
@@ -555,7 +555,7 @@ mobile-http-inspector/
   testdata/         # non-secret fixtures and golden JSONL
   tests/integration/
   docs/specification.md
-  examples/mhi.yaml
+  examples/mhi.yml
   examples/.env.example
   docs/ca-files.md
   docs/verification-matrix.md

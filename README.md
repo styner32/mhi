@@ -16,7 +16,7 @@ go test ./...
 
 ```
 mhi ca init|path|status|delete     # local CA lifecycle (M1)
-mhi serve --config ./mhi.yaml --watch
+mhi serve --config ./mhi.yml --watch
 mhi config check|show             # validate/display effective config (M2)
 mhi doctor                        # read-only local checks (M3)
 mhi version
@@ -28,7 +28,7 @@ auto-discovery in CWD, parent directories, or `$HOME`.
 
 ## Configuration example (M0 monitoring mode)
 
-```yaml
+```yml
 schema_version: 1
 listen: "192.168.0.10:9090"   # a specific LAN IPv4, never 0.0.0.0
 client: "192.168.0.25"        # the approved device's IP
@@ -65,3 +65,15 @@ non-target HTTPS hosts still tunnel through with only metadata reported.
 - Original `Accept-Encoding` preserved; no silent auto-compression handling.
 - stderr carries status/warnings only; stdout carries sanitized events only;
   hostnames with ESC/OSC/control characters are escaped before printing.
+
+
+## Getting Started
+
+```sh
+cp examples/mhi.yml mhi.yml
+cp examples/env.example .env
+```
+
+```sh
+ipconfig getifaddr $(route -n get default | awk '/interface/ {print $2}')
+```

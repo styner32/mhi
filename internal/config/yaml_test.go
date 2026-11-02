@@ -65,8 +65,9 @@ func TestURLDomainRejected(t *testing.T) {
 
 func TestTooManyDomainsRejected(t *testing.T) {
 	if err := validate(Config{
-		Listen: "h:1",
-		SSLProxy: SSLProxy{Domains: make([]string, MaxDomainEntries+1)},
+		SchemaVersion: 1,
+		Listen:        "h:1",
+		SSLProxy:      SSLProxy{Domains: make([]string, MaxDomainEntries+1)},
 	}); !errors.Is(err, ErrTooManyDomains) {
 		t.Fatalf("want ErrTooManyDomains, got %v", err)
 	}

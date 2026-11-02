@@ -1,8 +1,8 @@
-//
 // Package cli wires up the mhi command tree: ca, serve, config, doctor, and
 // version. Per spec v0.3 §4.1 these commands only read explicitly given files;
 // nothing auto-discovers config in CWD, parent dirs, or HOME.
 // Exit codes (spec §4.8):
+//
 //	0 normal, 2 invalid config / CA missing, 3 start failure,
 //	4 output failure / observation loss, 130 SIGINT.
 //
@@ -20,10 +20,10 @@ import (
 
 // Exit codes from spec v0.3 §4.8.
 const (
-	ExitOK             = 0
-	ExitInvalidConfig  = 2 // bad config / required CA missing
-	ExitStartFailed    = 3
-	ExitOutputFailure  = 4
+	ExitOK              = 0
+	ExitInvalidConfig   = 2 // bad config / required CA missing
+	ExitStartFailed     = 3
+	ExitOutputFailure   = 4
 	ExitSignalInterrupt = 130
 )
 
@@ -49,7 +49,9 @@ func Run(stdout, stderr io.Writer, args []string) int {
 // setExitCode rather than calling os.Exit deep in non-main code.
 var exitCode = ExitOK
 
-func setExitCode(code int) { exitCode = code }
+func setExitCode(code int) {
+	exitCode = code
+}
 
 func newRootCmd(stdout, stderr io.Writer) *cobra.Command {
 	root := &cobra.Command{
@@ -62,12 +64,13 @@ func newRootCmd(stdout, stderr io.Writer) *cobra.Command {
 	root.SetErr(stderr)
 
 	for _, sub := range []*cobra.Command{
-		newServeCmd(stdout, stderr, registerGlobalFlags),
-		newCACmd(stdout, stderr, registerGlobalFlags),
-		newConfigCmd(stdout, stderr, registerGlobalFlags),
-		newDoctorCmd(stdout, stderr, registerGlobalFlags),
+		newServeCmd(stdout, stderr),
+		// newCACmd(stdout, stderr),
+		// newConfigCmd(stdout, stderr),
+		// newDoctorCmd(stdout, stderr),
 	} {
 		root.AddCommand(sub)
+		registerGlobalFlags(sub)
 	}
 
 	// version — T-002: pure, opens no network, creates no CA, reads no files
@@ -100,8 +103,8 @@ func newVersionCmd(stdout io.Writer) *cobra.Command {
 // Kept here so it is visible on the package boundary without a main-package
 // dependency from internal/cli.
 var (
-	Version     = "0.0.1-dev"
-	buildCommit = "unknown"
+	Version      = "0.0.1-dev"
+	buildCommit  = "unknown"
 	proxyVersion = "v1.9.2" // goproxy source-review baseline, pinned in go.mod
 )
 

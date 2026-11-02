@@ -1,4 +1,3 @@
-//
 // serve — foreground proxy/monitor command. M0 scope (T-002..T-008):
 //
 //   - explicit paths only (--config/--env-file, never CWD scanning)
@@ -17,17 +16,18 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/spf13/cobra"
 
-	"github.com/sunjinlee/mhi/internal/config"
-	"github.com/sunjinlee/mhi/internal/proxy"
+	"github.com/styner32/mhi/internal/config"
+	"github.com/styner32/mhi/internal/proxy"
 )
 
-func newServeCmd(stdout, stderr io.Writer, registerGlobalFlags globalFlagRegistrar) *cobra.Command {
+func newServeCmd(stdout, stderr io.Writer) *cobra.Command {
 	var flags serveFlags
 
 	cmd := &cobra.Command{
@@ -41,7 +41,6 @@ func newServeCmd(stdout, stderr io.Writer, registerGlobalFlags globalFlagRegistr
 		},
 	}
 
-	registerGlobalFlags(cmd)
 	addServeFlags(cmd, &flags)
 	return cmd
 }
@@ -67,19 +66,19 @@ type serveFlags struct {
 
 func addServeFlags(cmd *cobra.Command, f *serveFlags) {
 	cmd.Flags().StringVar(&f.configPath, "config", "", "explicit YAML config path (no auto-discovery)")
-	cmd.Flags().StringVar(&f.listen, "listen", "", "listen address (default 127.0.0.1:9090; use a specific LAN IPv4 for iPhone)")
-	cmd.Flags().StringVar(&f.client, "client", "", "approved client IP (required with LAN bind)")
-	cmd.Flags().BoolVar(&f.sslProxy, "ssl-proxy", false, "enable SSL proxying (ssl_proxy.enabled)")
-	cmd.Flags().StringArrayVar(&f.mitmHosts, "mitm-host", nil, "exact host[:port] to MITM; repeatable; replaces domains list")
-	cmd.Flags().StringArrayVar(&f.httpHosts, "http-host", nil, "exact host[:port] for plaintext HTTP observation")
-	cmd.Flags().StringVar(&f.body, "body", "", "body capture mode: none|json (default none)")
-	cmd.Flags().BoolVar(&f.details, "details", false, "emit sanitized detail output")
-	cmd.Flags().StringVar(&f.format, "format", "", "output format: text|jsonl")
-	cmd.Flags().StringVar(&f.output, "output", "", "explicit JSONL output file")
-	cmd.Flags().Int64Var(&f.maxOutputKB, "max-output-bytes", 0, "output file size cap (default 100 MiB)")
-	cmd.Flags().StringVar(&f.redactRules, "redact-rules", "", "redact_rules JSON path")
-	cmd.Flags().StringVar(&f.proxyPassFile, "proxy-password-file", "", "0600 password file (never argv)")
-	cmd.Flags().BoolVar(&f.watch, "watch", false, "watch explicit config/env files for policy reload (serve-only, requires --config and/or --env-file)")
+	// cmd.Flags().StringVar(&f.listen, "listen", "", "listen address (default 127.0.0.1:9090; use a specific LAN IPv4 for iPhone)")
+	// cmd.Flags().StringVar(&f.client, "client", "", "approved client IP (required with LAN bind)")
+	// cmd.Flags().BoolVar(&f.sslProxy, "ssl-proxy", false, "enable SSL proxying (ssl_proxy.enabled)")
+	// cmd.Flags().StringArrayVar(&f.mitmHosts, "mitm-host", nil, "exact host[:port] to MITM; repeatable; replaces domains list")
+	// cmd.Flags().StringArrayVar(&f.httpHosts, "http-host", nil, "exact host[:port] for plaintext HTTP observation")
+	// cmd.Flags().StringVar(&f.body, "body", "", "body capture mode: none|json (default none)")
+	// cmd.Flags().BoolVar(&f.details, "details", false, "emit sanitized detail output")
+	// cmd.Flags().StringVar(&f.format, "format", "", "output format: text|jsonl")
+	// cmd.Flags().StringVar(&f.output, "output", "", "explicit JSONL output file")
+	// cmd.Flags().Int64Var(&f.maxOutputKB, "max-output-bytes", 0, "output file size cap (default 100 MiB)")
+	// cmd.Flags().StringVar(&f.redactRules, "redact-rules", "", "redact_rules JSON path")
+	// cmd.Flags().StringVar(&f.proxyPassFile, "proxy-password-file", "", "0600 password file (never argv)")
+	// cmd.Flags().BoolVar(&f.watch, "watch", false, "watch explicit config/env files for policy reload (serve-only, requires --config and/or --env-file)")
 }
 
 func runServe(stdout, stderr io.Writer, f serveFlags) error {
@@ -93,8 +92,15 @@ func runServe(stdout, stderr io.Writer, f serveFlags) error {
 			setExitCode(ExitInvalidConfig)
 			return nil
 		}
+
+		slog.Info("serve: loaded config",
+			"configPath", f.configPath,
+			"listen", loaded.Listen,
+			"client", loaded.Client,
+		)
 		cfg = loaded
 	}
+
 	// CLI flag overlay (explicit values only; M2 uses Flags().Changed to
 	// distinguish user-supplied from cobra defaults, §4.4).
 	if f.listen != "" {

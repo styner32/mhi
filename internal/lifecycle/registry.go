@@ -1,4 +1,3 @@
-//
 // Package lifecycle — connection registry and shutdown (checklist T-007,
 // spec §9.3, AC-17).
 //
@@ -15,24 +14,43 @@ import (
 	"time"
 )
 
+// entry holds the conn to close (wrapped if present, else raw) plus the
+// raw reference for direct teardown use.
+type entry struct {
+	raw     net.Conn
+	wrapped net.Conn // may be nil; when set, Close() reports tunnel closure
+}
+
+// closer returns the conn whose Close() should be called at shutdown. For
+// watched tunnels that is the wrapper (its Close fires the closed-event
+// hook, §8); for plain tracking it is the raw conn.
+func (e entry) closer() net.Conn {
+	if e.wrapped != nil {
+		return e.wrapped
+	}
+	return e.raw
+}
+
 // Registry tracks owned connections for explicit close on shutdown.
 type Registry struct {
 	mu    sync.Mutex
-	conns map[string]net.Conn
+	conns map[string]entry
 	next  uint64
 }
 
 func NewRegistry() *Registry {
-	return &Registry{conns: make(map[string]net.Conn)}
+	return &Registry{conns: make(map[string]entry)}
 }
 
 // Add registers a conn and returns its assigned stable connection ID.
-func (r *Registry) Add(c net.Conn) string {
+// Optional wrapped: the close-reporting wrapper whose Close also emits
+// the per-tunnel connection.closed event (proxy.watch tunnel wiring).
+func (r *Registry) Add(c net.Conn, wrapped net.Conn) string {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.next++
 	id := connIDPrefix + itoa(r.next)
-	r.conns[id] = c
+	r.conns[id] = entry{raw: c, wrapped: wrapped}
 	return id
 }
 
@@ -50,14 +68,25 @@ func (r *Registry) Count() int {
 	return len(r.conns)
 }
 
-// CloseAll forcibly closes every tracked conn. Used after the 3s drain
-// grace period (§9.3) to guarantee no owned connection outlives shutdown.
+// CloseAll forcibly closes every tracked conn — via the watched wrapper when
+// one exists (fires the per-tunnel closed-event hook), raw otherwise. Used
+// after the 3s drain grace period (§9.3).
 func (r *Registry) CloseAll() {
 	r.mu.Lock()
-	defer r.mu.Unlock()
-	for id, c := range r.conns {
-		_ = c.Close()
+	entries := make([]entry, 0, len(r.conns))
+	for id, e := range r.conns {
+		entries = append(entries, e)
 		delete(r.conns, id)
+	}
+	r.mu.Unlock()
+	for _, e := range entries {
+		if e.wrapped != nil {
+			_ = e.wrapped.Close() // watchedConn.Close fires onTunnelClosed
+			continue
+		}
+		if e.raw != nil {
+			_ = e.raw.Close()
+		}
 	}
 }
 

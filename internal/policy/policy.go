@@ -1,4 +1,3 @@
-//
 // Package policy implements connection admission and destination rules:
 //
 //   - approved client IP gate (spec §4.5, AC-08) — checked before any

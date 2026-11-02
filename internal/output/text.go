@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sunjinlee/mhi/internal/model"
+	"github.com/styner32/mhi/internal/model"
 )
 
 // writeJSONL emits one compact JSON object with no banners/ANSI mixing (AC-21).
@@ -34,7 +34,15 @@ func textLine(ev model.SafeEvent) string {
 	}
 	c := ev.Connection
 	host := escapeText(c.Host)
-	return fmt.Sprintf("%-4s %-28s mode=%s policy=%d", "CONNECT", host, c.Mode, c.PolicyRevision)
+	// event-type label: the spec 4.8 text contract varies the first token
+	// (CONNECT metadata vs closed); c.Mode/policy stay stable per connection.
+	label := ev.Type // e.g. connection.mode_selected / connection.closed
+	_ = label
+	verb := "CONNECT"
+	if ev.Type == model.EventConnectionClosed {
+		verb = "CLOSED"
+	}
+	return fmt.Sprintf("%-4s %-28s mode=%s policy=%d", verb, host, c.Mode, c.PolicyRevision)
 }
 
 // escapeText replaces network-sourced control bytes with visible escapes.

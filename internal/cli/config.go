@@ -1,4 +1,3 @@
-//
 // config sub-commands (spec §4.1):
 //
 //	mhi config check  — validate YAML/env syntax, schema, domains, CA state.
